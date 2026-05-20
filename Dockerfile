@@ -12,21 +12,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libtiff5-dev \
     libjpeg-dev \
+    libgit2-dev \
     pandoc \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# ---- Pacotes R (etapa separada para cache do Docker) ----
-RUN R -e "install.packages( \
-    c('plumber', 'bibliometrix', 'openxlsx'), \
-    repos = 'https://cloud.r-project.org', \
-    Ncpus  = 4  \
-  )"
+# ---- Copiar e rodar instalação de pacotes (camada cacheada) ----
+COPY install.R /tmp/install.R
+RUN Rscript /tmp/install.R
 
+# ---- Copiar aplicação ----
 WORKDIR /app
-
-COPY app.R   .
-COPY index.html .
-COPY run.R   .
+COPY app.R       .
+COPY index.html  .
+COPY run.R       .
 
 EXPOSE 10000
 
