@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiblioMerge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0c1117;
+      --surface: #151d28;
+      --surface-hover: #1c2736;
+      --border: #253040;
+      --accent: #c9a959;
+      --accent-dim: rgba(201,169,89,0.12);
+      --text: #e2ddd4;
+      --text-muted: #6d7a8b;
+      --success: #4ade80;
+      --error: #f87171;
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(201,169,89,0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(89,130,201,0.03) 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* ---- Grain overlay ---- */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .container { max-width: 620px; width: 100%; }
+
+    /* ---- Tipografia ---- */
+    h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.3rem;
+      opacity: 0; animation: fadeUp 0.6s ease forwards;
+    }
+
+    .subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 2.8rem;
+      opacity: 0; animation: fadeUp 0.6s ease 0.1s forwards;
+    }
+
+    /* ---- Upload zones ---- */
+    .upload-zone {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.6rem 2rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+      opacity: 0; animation: fadeUp 0.6s ease forwards;
+    }
+    .upload-zone:nth-of-type(1) { animation-delay: 0.15s; }
+    .upload-zone:nth-of-type(2) { animation-delay: 0.25s; }
+
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: var(--surface-hover);
+    }
+
+    .upload-zone.has-file {
+      border-color: var(--success);
+      background: rgba(74,222,128,0.04);
+      box-shadow: 0 0 0 1px rgba(74,222,128,0.12);
+    }
+
+    .upload-zone label {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .icon-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .upload-zone.has-file .icon-circle { background: rgba(74,222,128,0.12); }
+
+    .icon-circle svg {
+      width: 22px; height: 22px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .upload-zone.has-file .icon-circle svg { stroke: var(--success); }
+
+    .upload-text h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .upload-text p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .upload-text .fname {
+      display: none;
+      margin-top: 0.3rem;
+      font-size: 0.72rem;
+      color: var(--success);
+      font-weight: 500;
+    }
+    .upload-zone.has-file .fname { display: block; }
+
+    input[type="file"] { display: none; }
+
+    /* ---- Botão merge ---- */
+    .btn-merge {
+      width: 100%;
+      padding: 1rem 2rem;
+      margin-top: 1.6rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: letter-spacing 0.3s, filter 0.2s, transform 0.1s;
+      opacity: 0; animation: fadeUp 0.6s ease 0.35s forwards;
+    }
+
+    .btn-merge:disabled {
+      background: var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      letter-spacing: 0.06em;
+    }
+
+    .btn-merge:not(:disabled):hover {
+      letter-spacing: 0.14em;
+      filter: brightness(1.12);
+    }
+
+    .btn-merge:not(:disabled):active { transform: scale(0.98); }
+
+    /* ---- Status ---- */
+    .status {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.78rem;
+      min-height: 1.4rem;
+      opacity: 0; animation: fadeUp 0.6s ease 0.45s forwards;
+    }
+    .status.ok    { color: var(--success); }
+    .status.err   { color: var(--error); }
+    .status.load  { color: var(--accent); }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--accent-dim);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      margin-top: 3.5rem;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-align: center;
+      opacity: 0; animation: fadeUp 0.6s ease 0.55s forwards;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ---- Animações ---- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>BiblioMerge</h1>
+  <p class="subtitle">Juntar resultados das bases bibliométricas — Scopus (CSV) &amp; Web of Science (TXT)</p>
+
+  <!-- ===== Scopus CSV ===== -->
+  <div class="upload-zone" id="zone-csv">
+    <label for="input-csv">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div class="upload-text">
+        <h3>Scopus — CSV</h3>
+        <p>Arquivo scopus (.csv)</p>
+        <span class="fname" id="csv-name"></span>
+      </div>
+    </label>
+    <input type="file" id="input-csv" accept=".csv" onchange="handleFile('csv')">
+  </div>
+
+  <!-- ===== Web of Science TXT ===== -->
+  <div class="upload-zone" id="zone-txt">
+    <label for="input-txt">
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div class="upload-text">
+        <h3>Web of Science — TXT</h3>
+        <p>Arquivo web (.txt)</p>
+        <span class="fname" id="txt-name"></span>
+      </div>
+    </label>
+    <input type="file" id="input-txt" accept=".txt" onchange="handleFile('txt')">
+  </div>
+
+  <!-- ===== Botão Merge ===== -->
+  <button class="btn-merge" id="btn-merge" disabled onclick="mergeFiles()">
+    JUNTAR BASES
+  </button>
+
+  <div class="status" id="status"></div>
+</div>
+
+<footer>
+  Powered by <a href="https://bibliometrix.org" target="_blank" rel="noopener">bibliometrix</a> &middot; R + Plumber
+</footer>
+
+<script>
+  let csvFile = null;
+  let txtFile = null;
+
+  function handleFile(type) {
+    const input  = document.getElementById('input-' + type);
+    const zone   = document.getElementById('zone-'   + type);
+    const nameEl = document.getElementById(type + '-name');
+
+    if (input.files.length > 0) {
+      const f = input.files[0];
+      if (type === 'csv') csvFile = f; else txtFile = f;
+      zone.classList.add('has-file');
+      nameEl.textContent = f.name + '  (' + (f.size / 1024).toFixed(1) + ' KB)';
+    } else {
+      if (type === 'csv') csvFile = null; else txtFile = null;
+      zone.classList.remove('has-file');
+      nameEl.textContent = '';
+    }
+
+    document.getElementById('btn-merge').disabled = !(csvFile && txtFile);
+  }
+
+  async function mergeFiles() {
+    const btn    = document.getElementById('btn-merge');
+    const status = document.getElementById('status');
+
+    btn.disabled   = true;
+    btn.textContent = 'PROCESSANDO…';
+    status.className = 'status load';
+    status.innerHTML = '<span class="spinner"></span> Convertendo e mesclando bases de dados…';
+
+    const fd = new FormData();
+    fd.append('csv_file', csvFile);
+    fd.append('txt_file', txtFile);
+
+    try {
+      const resp = await fetch('/merge', { method: 'POST', body: fd });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        throw new Error(errText || 'Erro desconhecido no servidor');
+      }
+
+      // Download do arquivo retornado
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'dadosbiblio.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      status.className = 'status ok';
+      status.textContent = 'Arquivo gerado com sucesso! Download iniciado.';
+
+    } catch (err) {
+      status.className = 'status err';
+      status.textContent = err.message;
+
+    } finally {
+      btn.textContent = 'MERGE DATABASES';
+      btn.disabled    = !(csvFile && txtFile);
+    }
+  }
+</script>
+
+</body>
+</html>
